@@ -1,0 +1,20 @@
+# پوشه محیط مجازی
+venv/
+env/
+ENV/
+cache/
+
+# فایل‌های کامپایل پایتون
+__pycache__/
+*.pyc
+*$py.class
+
+# پوشه تنظیمات VS Code
+.vscode/
+.idea/
+
+# فایل‌های محیطی (مثل API Key) – بعداً اضافه می‌کنیم
+.env
+*.key
+*.pem
+*.joblib

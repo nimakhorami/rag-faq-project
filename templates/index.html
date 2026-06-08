@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سیستم پرسش و پاسخ RAG</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 750px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 35px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .container:hover {
+            transform: translateY(-5px);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header .icon {
+            font-size: 50px;
+            margin-bottom: 10px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .header h1 {
+            color: #2d3748;
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header p {
+            color: #718096;
+            font-size: 1rem;
+            font-weight: 400;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 18px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            resize: vertical;
+            transition: all 0.3s ease;
+            background: #f7fafc;
+            color: #2d3748;
+            min-height: 120px;
+            line-height: 1.8;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            background: #ffffff;
+        }
+        
+        textarea::placeholder {
+            color: #a0aec0;
+            font-weight: 300;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: #667eea;
+            font-weight: 500;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 15px;
+            border-right: 4px solid #667eea;
+            color: #2d3748;
+            line-height: 2;
+            font-size: 1rem;
+            min-height: 80px;
+            white-space: pre-line;
+            word-wrap: break-word;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .result:empty {
+            display: none;
+        }
+        
+        .hint {
+            text-align: center;
+            color: #a0aec0;
+            font-size: 0.85rem;
+            margin-top: 15px;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px 20px;
+            }
+            .header h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">🤖</div>
+            <h1>سیستم پرسش و پاسخ هوشمند</h1>
+            <p>سوال خود را بپرسید تا بر اساس دانش موجود پاسخ دهیم</p>
+        </div>
+        
+        <div class="input-group">
+            <textarea id="question" placeholder="مثال: ساعت کاری شرکت چیست؟ ..."></textarea>
+        </div>
+        
+        <button class="btn" onclick="askQuestion()">
+            <span>📨</span> ارسال سوال
+        </button>
+        
+        <div class="loading" id="loading">
+            <span class="spinner"></span> در حال تحلیل و بازیابی پاسخ...
+        </div>
+        
+        <div class="result" id="result">
+            پاسخ شما در اینجا نمایش داده می‌شود.
+        </div>
+        
+        <div class="hint">
+            برای ارسال سریع‌تر می‌توانید از کلیدهای Ctrl + Enter استفاده کنید.
+        </div>
+    </div>
+
+    <script>
+        async function askQuestion() {
+            const question = document.getElementById('question').value.trim();
+            const resultDiv = document.getElementById('result');
+            const loadingDiv = document.getElementById('loading');
+            
+            if (!question) {
+                resultDiv.innerHTML = '<span style="color: #e53e3e;">⛔ لطفاً سوال خود را وارد کنید.</span>';
+                resultDiv.style.borderRightColor = '#e53e3e';
+                return;
+            }
+            
+            // نمایش حالت بارگذاری
+            loadingDiv.style.display = 'block';
+            resultDiv.innerHTML = '';
+            resultDiv.style.borderRightColor = '#667eea'; // بازگشت به رنگ عادی
+            
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                         'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question: question
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.answer) {
+                    resultDiv.innerHTML = data.answer;
+                } else if (data.error) {
+                    resultDiv.innerHTML = `<span style="color: #e53e3e;">⚠️ خطا: ${data.error}</span>`;
+                    resultDiv.style.borderRightColor = '#e53e3e';
+                } else {
+                    resultDiv.innerHTML = "❓ پاسخی یافت نشد.";
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span style="color: #e53e3e;">🚫 خطا در برقراری ارتباط با سرور: ${error.message}</span>`;
+                resultDiv.style.borderRightColor = '#e53e3e';
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        }
+        
+        // ارسال با Ctrl+Enter
+        document.getElementById('question').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                askQuestion();
+            }
+        });
+    </script>
+</body>
+</html>
